@@ -181,7 +181,7 @@ def add_numbered_paragraph(doc, text, font_name="Arial", font_size=11,
     return p
 
 
-def add_indented_paragraph(doc, text, indent_px=150,
+def add_indented_paragraph(doc, text, indent_px=200,
                            font_name="Arial", font_size=11, bold=False,
                            align=WD_ALIGN_PARAGRAPH.LEFT,
                            space_after=6, space_before=0):
@@ -265,11 +265,21 @@ def build_surat(data, output_path):
     if not lokasi_tanggal.startswith("Koba"):
         lokasi_tanggal = f"Koba,        {lokasi_tanggal}"
 
-    add_indented_paragraph(doc, lokasi_tanggal, indent_px=150, space_after=6)
-    add_indented_paragraph(doc, "Kepala Sekolah", indent_px=150, space_after=36)
+    add_indented_paragraph(doc, lokasi_tanggal, indent_px=200, space_after=6)
+    add_indented_paragraph(doc, "Kepala Sekolah", indent_px=200, space_after=36)
 
-    add_indented_paragraph(doc, data["nama"], indent_px=150, bold=True, space_after=3)
-    add_indented_paragraph(doc, f"NIP. {data['nip']}", indent_px=150, space_after=3)
+    p_sig = doc.add_paragraph()
+    p_sig.paragraph_format.space_after = Pt(3)
+    p_sig.paragraph_format.space_before = Pt(0)
+    p_sig.paragraph_format.left_indent = Emu(200 * 12700)
+    run_name = p_sig.add_run(data["nama"])
+    run_name.font.name = "Arial"
+    run_name.font.size = Pt(11)
+    run_name.font.bold = True
+    run_name.add_break()
+    run_nip = p_sig.add_run(f"NIP. {data['nip']}")
+    run_nip.font.name = "Arial"
+    run_nip.font.size = Pt(11)
 
     output_path = Path(output_path)
     doc.save(str(output_path))

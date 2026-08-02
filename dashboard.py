@@ -296,7 +296,8 @@ for i, (name, path) in enumerate(output_files.items()):
                     key=f"dl_{name}"
                 )
         else:
-            st.metric(label=name, value="0 KB", delta="❌ Belum ada")
+            st.caption(f"⚪ {name}")
+            st.caption("Belum dibuat")
 
 st.markdown("---")
 st.subheader("📝 Log Interaktif")
