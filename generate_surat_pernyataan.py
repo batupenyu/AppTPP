@@ -21,7 +21,7 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 from docx import Document
-from docx.shared import Pt, Cm, Emu
+from docx.shared import Pt, Cm, Emu, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
@@ -214,6 +214,14 @@ def build_surat(data, output_path):
     style.font.name = "Arial"
     style.font.size = Pt(11)
 
+    kop_path = Path(__file__).parent / "kop_surat.png"
+    if kop_path.exists():
+        p_kop = doc.add_paragraph()
+        p_kop.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_kop.paragraph_format.space_after = Pt(6)
+        run_kop = p_kop.add_run()
+        run_kop.add_picture(str(kop_path), width=Inches(6.3))
+
     add_paragraph(doc, "SURAT PERNYATAAN TANGGUNG JAWAB MUTLAK",
                   align=WD_ALIGN_PARAGRAPH.CENTER, bold=True,
                   font_size=14, space_after=12)
@@ -259,7 +267,7 @@ def build_surat(data, output_path):
         "sesuai ketentuan yang berlaku untuk kelengkapan administrasi dan keperluan "
         "pemeriksaan BPK dan/atau aparatur pengawas fungsional lainnya."
     )
-    add_numbered_paragraph(doc, p3, space_after=12)
+    add_numbered_paragraph(doc, p3, space_after=24)
 
     lokasi_tanggal = data.get("lokasi") or "Koba,        Agustus 2026"
     if not lokasi_tanggal.startswith("Koba"):
