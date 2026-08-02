@@ -167,7 +167,7 @@ def add_numbered_paragraph(doc, text, font_name="Arial", font_size=11,
                            space_after=12, space_before=0):
     """Tambah numbered paragraph (ordered list) untuk item 1, 2, 3, dst.
     Gunakan style 'List Number' agar Word menangani penomoran otomatis.
-    Tambah baris kosong setelah item dengan spacing 12pt.
+    Tambah baris kosong dengan non-breaking space agar spacing terlihat.
     """
     p = doc.add_paragraph(style='List Number')
     p.paragraph_format.space_after = Pt(0)
@@ -182,6 +182,9 @@ def add_numbered_paragraph(doc, text, font_name="Arial", font_size=11,
     p_empty = doc.add_paragraph()
     p_empty.paragraph_format.space_after = Pt(space_after)
     p_empty.paragraph_format.space_before = Pt(0)
+    run_space = p_empty.add_run("\u00A0")
+    run_space.font.name = font_name
+    run_space.font.size = Pt(font_size)
 
     return p
 
