@@ -83,7 +83,7 @@ def extract_sptjm_data(xlsx_path):
                 m = re.search(r"(Rp\.\s*[\d\.]+,-)", val)
                 if m:
                     data["jumlah_rupiah"] = m.group(1).strip()
-                m2 = re.search(r"\(([^)]+)\)", val)
+                m2 = re.search(r"Rp\.[\d\.]+,\-\s*\(([^)]+)\)", val)
                 if m2:
                     data["jumlah_terbilang"] = m2.group(1).strip()
 
