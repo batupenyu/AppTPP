@@ -164,14 +164,15 @@ def add_tab_paragraph(doc, label, value, tab_pos_cm=4.5,
 
 
 def add_numbered_paragraph(doc, text, font_name="Arial", font_size=11,
-                           space_after=6, space_before=0, left_indent_px=150):
+                           space_after=6, space_before=0):
     """Tambah numbered paragraph (ordered list) untuk item 1, 2, 3, dst.
     Gunakan style 'List Number' agar Word menangani penomoran otomatis.
+    Tanpa padding-left, alignment justify.
     """
     p = doc.add_paragraph(style='List Number')
     p.paragraph_format.space_after = Pt(space_after)
     p.paragraph_format.space_before = Pt(space_before)
-    p.paragraph_format.left_indent = Emu(left_indent_px * 12700)
+    p.paragraph_format.left_indent = None
     p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
 
     run = p.add_run(text)
