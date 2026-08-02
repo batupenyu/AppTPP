@@ -47,6 +47,55 @@ with st.sidebar:
             st.rerun()
     
     st.markdown("---")
+    st.subheader("📝 Generate Surat Pernyataan")
+    tpp_excel = BASE / "_usulan_tpp_smkn1_koba" / "PNS" / "TPP PNS JULI 2026 SMKN 1 KOBA.xlsm"
+    surat_output = BASE / "_usulan_tpp_smkn1_koba" / "PNS" / "SURAT_PERNYATAAN_PNS.docx"
+    
+    if tpp_excel.exists():
+        st.caption(f"📊 Sumber: {tpp_excel.name}")
+    else:
+        st.caption(f"⚪ File Excel TPP tidak ditemukan")
+    
+    if st.button("📄 Generate SURAT_PERNYATAAN_PNS.docx", use_container_width=True):
+        if not tpp_excel.exists():
+            st.error("❌ File Excel TPP tidak ditemukan!")
+        else:
+            with st.spinner("Sedang membuat surat pernyataan..."):
+                try:
+                    result = subprocess.run(
+                        [sys.executable, str(BASE / "generate_surat_pernyataan.py"), str(tpp_excel), "-o", str(surat_output)],
+                        cwd=str(BASE),
+                        capture_output=True,
+                        text=True
+                    )
+                    if result.returncode == 0:
+                        st.success("✅ Surat pernyataan berhasil dibuat!")
+                        if result.stdout:
+                            st.code(result.stdout, language=None)
+                        if surat_output.exists():
+                            with open(surat_output, "rb") as f:
+                                st.download_button(
+                                    label="⬇️ Download SURAT_PERNYATAAN_PNS.docx",
+                                    data=f,
+                                    file_name="SURAT_PERNYATAAN_PNS.docx",
+                                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                    key="dl_surat"
+                                )
+                        st.rerun()
+                    else:
+                        st.error(f"❌ Gagal membuat surat pernyataan")
+                        if result.stderr:
+                            st.error(result.stderr)
+                        if result.stdout:
+                            st.code(result.stdout, language=None)
+                except Exception as e:
+                    st.error(f"❌ Error: {e}")
+    
+    if surat_output.exists():
+        size = surat_output.stat().st_size / 1024
+        st.caption(f"📄 SURAT_PERNYATAAN_PNS.docx ({size:.1f} KB)")
+    
+    st.markdown("---")
     st.subheader("Pilih File PDF untuk Ekstraksi")
     pdf_files = {
         "gaji.py": BASE / "gaji.pdf",
@@ -229,6 +278,7 @@ output_files = {
     "perhitungan.csv": BASE / "perhitungan.csv",
     "perhitungan_ringkasan.csv": BASE / "perhitungan_ringkasan.csv",
     "gabung.xlsx": BASE / "gabung.xlsx",
+    "SURAT_PERNYATAAN_PNS.docx": BASE / "_usulan_tpp_smkn1_koba" / "PNS" / "SURAT_PERNYATAAN_PNS.docx",
 }
 
 file_cols = st.columns(5)
