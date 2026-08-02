@@ -163,22 +163,24 @@ def add_tab_paragraph(doc, label, value, tab_pos_cm=4.5,
     return p
 
 
-def add_numbered_paragraph(doc, number, text, font_name="Arial", font_size=11,
-                           space_after=6, space_before=0, left_indent_cm=None):
-    """Tambah numbered paragraph (ordered list) untuk item 1, 2, 3, dst."""
+def add_numbered_paragraph(doc, text, font_name="Arial", font_size=11,
+                           space_after=6, space_before=0, left_indent_px=150):
+    """Tambah numbered paragraph (ordered list) untuk item 1, 2, 3, dst.
+    Gunakan style 'List Number' agar Word menangani penomoran otomatis.
+    """
     p = doc.add_paragraph(style='List Number')
     p.paragraph_format.space_after = Pt(space_after)
     p.paragraph_format.space_before = Pt(space_before)
-    if left_indent_cm is not None:
-        p.paragraph_format.left_indent = Cm(left_indent_cm)
+    p.paragraph_format.left_indent = Emu(left_indent_px * 12700)
+    p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
 
-    run = p.add_run(f"{number}.\t{text}")
+    run = p.add_run(text)
     run.font.name = font_name
     run.font.size = Pt(font_size)
     return p
 
 
-def add_indented_paragraph(doc, text, indent_px=350,
+def add_indented_paragraph(doc, text, indent_px=150,
                            font_name="Arial", font_size=11, bold=False,
                            align=WD_ALIGN_PARAGRAPH.LEFT,
                            space_after=6, space_before=0):
@@ -241,14 +243,14 @@ def build_surat(data, output_path):
         f"telah dihitung dengan benar berdasarkan dokumen pelaksanaan anggaran "
         f"dan dokumen pendukung lainnya."
     )
-    add_numbered_paragraph(doc, "1", p1, space_after=6)
+    add_numbered_paragraph(doc, p1, space_after=6)
 
     p2 = (
         "Apabila terdapat kesalahan dan kelebihan atas pembayaran, sebagaimana "
         "yang dimaksud pada point 1 (satu), kami bertanggung jawab dan bersedia "
         "untuk menyetorkan kelebihan tersebut ke Kas Daerah."
     )
-    add_numbered_paragraph(doc, "2", p2, space_after=6)
+    add_numbered_paragraph(doc, p2, space_after=6)
 
     p3 = (
         "Dokumen bukti-bukti belanja atas pembayaran tersebut di atas disimpan di "
@@ -256,17 +258,17 @@ def build_surat(data, output_path):
         "sesuai ketentuan yang berlaku untuk kelengkapan administrasi dan keperluan "
         "pemeriksaan BPK dan/atau aparatur pengawas fungsional lainnya."
     )
-    add_numbered_paragraph(doc, "3", p3, space_after=12)
+    add_numbered_paragraph(doc, p3, space_after=12)
 
     lokasi_tanggal = data.get("lokasi") or "Koba,        Agustus 2026"
     if not lokasi_tanggal.startswith("Koba"):
         lokasi_tanggal = f"Koba,        {lokasi_tanggal}"
 
-    add_indented_paragraph(doc, lokasi_tanggal, space_after=6)
-    add_indented_paragraph(doc, "Kepala Sekolah", space_after=36)
+    add_indented_paragraph(doc, lokasi_tanggal, indent_px=150, space_after=6)
+    add_indented_paragraph(doc, "Kepala Sekolah", indent_px=150, space_after=36)
 
-    add_indented_paragraph(doc, data["nama"], bold=True, space_after=3)
-    add_indented_paragraph(doc, f"NIP. {data['nip']}", space_after=3)
+    add_indented_paragraph(doc, data["nama"], indent_px=150, bold=True, space_after=3)
+    add_indented_paragraph(doc, f"NIP. {data['nip']}", indent_px=150, space_after=3)
 
     output_path = Path(output_path)
     doc.save(str(output_path))
