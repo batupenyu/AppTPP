@@ -281,7 +281,7 @@ output_files = {
     "SURAT_PERNYATAAN_PNS.docx": BASE / "_usulan_tpp_smkn1_koba" / "PNS" / "SURAT_PERNYATAAN_PNS.docx",
 }
 
-file_cols = st.columns(5)
+file_cols = st.columns(6)
 for i, (name, path) in enumerate(output_files.items()):
     with file_cols[i]:
         if path.exists():

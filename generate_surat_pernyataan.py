@@ -21,8 +21,10 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 from docx import Document
-from docx.shared import Pt, Cm
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Pt, Cm, Emu
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 
 
 def extract_sptjm_data(xlsx_path):
@@ -123,6 +125,77 @@ def add_paragraph(doc, text, align=WD_ALIGN_PARAGRAPH.LEFT,
     return p
 
 
+def add_tab_paragraph(doc, label, value, tab_pos_cm=4.5,
+                      font_name="Arial", font_size=11, bold=False,
+                      space_after=3, space_before=0):
+    """Tambah paragraph dengan label di-sepakati kanan, colon, lalu value.
+    Contoh output:
+        Nama       : SYAHRYANTO, S.T.,M.Pd
+        NIP        : 197708262006041005
+        Jabatan    : Kepala SMK Negeri 1 Koba
+    sehingga titik dua (:) align vertikal.
+    """
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    p.paragraph_format.space_after = Pt(space_after)
+    p.paragraph_format.space_before = Pt(space_before)
+    p.paragraph_format.tab_stops.add_tab_stop(Cm(tab_pos_cm))
+
+    run_label = p.add_run(label)
+    run_label.font.name = font_name
+    run_label.font.size = Pt(font_size)
+    run_label.font.bold = bold
+
+    run_tab = p.add_run("\t")
+    run_tab.font.name = font_name
+    run_tab.font.size = Pt(font_size)
+
+    run_colon = p.add_run(": ")
+    run_colon.font.name = font_name
+    run_colon.font.size = Pt(font_size)
+    run_colon.font.bold = bold
+
+    run_value = p.add_run(value)
+    run_value.font.name = font_name
+    run_value.font.size = Pt(font_size)
+    run_value.font.bold = bold
+
+    return p
+
+
+def add_numbered_paragraph(doc, number, text, font_name="Arial", font_size=11,
+                           space_after=6, space_before=0, left_indent_cm=None):
+    """Tambah numbered paragraph (ordered list) untuk item 1, 2, 3, dst."""
+    p = doc.add_paragraph(style='List Number')
+    p.paragraph_format.space_after = Pt(space_after)
+    p.paragraph_format.space_before = Pt(space_before)
+    if left_indent_cm is not None:
+        p.paragraph_format.left_indent = Cm(left_indent_cm)
+
+    run = p.add_run(f"{number}.\t{text}")
+    run.font.name = font_name
+    run.font.size = Pt(font_size)
+    return p
+
+
+def add_indented_paragraph(doc, text, indent_px=350,
+                           font_name="Arial", font_size=11, bold=False,
+                           align=WD_ALIGN_PARAGRAPH.LEFT,
+                           space_after=6, space_before=0):
+    """Tambah paragraph dengan left indent dalam pixel."""
+    p = doc.add_paragraph()
+    p.alignment = align
+    p.paragraph_format.space_after = Pt(space_after)
+    p.paragraph_format.space_before = Pt(space_before)
+    p.paragraph_format.left_indent = Emu(indent_px * 12700)
+
+    run = p.add_run(text)
+    run.font.name = font_name
+    run.font.size = Pt(font_size)
+    run.font.bold = bold
+    return p
+
+
 def build_surat(data, output_path):
     doc = Document()
 
@@ -144,9 +217,9 @@ def build_surat(data, output_path):
 
     add_paragraph(doc, "Yang bertanda tangan dibawah ini :", space_after=6)
 
-    add_paragraph(doc, f"Nama\t: {data['nama']}", space_after=3)
-    add_paragraph(doc, f"NIP\t: {data['nip']}", space_after=3)
-    add_paragraph(doc, f"Jabatan\t: {data['jabatan']}", space_after=12)
+    add_tab_paragraph(doc, "Nama", data['nama'], space_after=3)
+    add_tab_paragraph(doc, "NIP", data['nip'], space_after=3)
+    add_tab_paragraph(doc, "Jabatan", data['jabatan'], space_after=12)
 
     add_paragraph(doc, "Menyatakan dengan sesungguhnya bahwa :", space_after=6)
 
@@ -162,38 +235,38 @@ def build_surat(data, output_path):
         terbilang = "..........................................."
 
     p1 = (
-        f"1.\tPerhitungan yang terdapat dalam SPM Langsung (SPM-LS) Nomor : {nomor_spm} "
+        f"Perhitungan yang terdapat dalam SPM Langsung (SPM-LS) Nomor : {nomor_spm} "
         f"tanggal {tanggal_spm} untuk pembayaran Tambahan Penghasilan Pegawai (TPP) "
         f"Negeri Sipil sebesar {jumlah} ({terbilang}) untuk bulan {bulan} {tahun} "
         f"telah dihitung dengan benar berdasarkan dokumen pelaksanaan anggaran "
         f"dan dokumen pendukung lainnya."
     )
-    add_paragraph(doc, p1, space_after=6)
+    add_numbered_paragraph(doc, "1", p1, space_after=6)
 
     p2 = (
-        "2.\tApabila terdapat kesalahan dan kelebihan atas pembayaran, sebagaimana "
+        "Apabila terdapat kesalahan dan kelebihan atas pembayaran, sebagaimana "
         "yang dimaksud pada point 1 (satu), kami bertanggung jawab dan bersedia "
         "untuk menyetorkan kelebihan tersebut ke Kas Daerah."
     )
-    add_paragraph(doc, p2, space_after=6)
+    add_numbered_paragraph(doc, "2", p2, space_after=6)
 
     p3 = (
-        "3.\tDokumen bukti-bukti belanja atas pembayaran tersebut di atas disimpan di "
+        "Dokumen bukti-bukti belanja atas pembayaran tersebut di atas disimpan di "
         "Dinas Pendidikan Provinsi Kepulauan Bangka Belitung (SMK Negeri 1 Koba) "
         "sesuai ketentuan yang berlaku untuk kelengkapan administrasi dan keperluan "
         "pemeriksaan BPK dan/atau aparatur pengawas fungsional lainnya."
     )
-    add_paragraph(doc, p3, space_after=12)
+    add_numbered_paragraph(doc, "3", p3, space_after=12)
 
     lokasi_tanggal = data.get("lokasi") or "Koba,        Agustus 2026"
     if not lokasi_tanggal.startswith("Koba"):
         lokasi_tanggal = f"Koba,        {lokasi_tanggal}"
 
-    add_paragraph(doc, lokasi_tanggal, align=WD_ALIGN_PARAGRAPH.LEFT, space_after=6)
-    add_paragraph(doc, "Kepala Sekolah", align=WD_ALIGN_PARAGRAPH.LEFT, space_after=36)
+    add_indented_paragraph(doc, lokasi_tanggal, space_after=6)
+    add_indented_paragraph(doc, "Kepala Sekolah", space_after=36)
 
-    add_paragraph(doc, data["nama"], align=WD_ALIGN_PARAGRAPH.LEFT, bold=True, space_after=3)
-    add_paragraph(doc, f"NIP. {data['nip']}", align=WD_ALIGN_PARAGRAPH.LEFT, space_after=3)
+    add_indented_paragraph(doc, data["nama"], bold=True, space_after=3)
+    add_indented_paragraph(doc, f"NIP. {data['nip']}", space_after=3)
 
     output_path = Path(output_path)
     doc.save(str(output_path))
