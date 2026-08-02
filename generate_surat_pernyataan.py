@@ -205,7 +205,7 @@ def build_surat(data, output_path):
     section = doc.sections[0]
     section.page_height = Cm(29.7)
     section.page_width = Cm(21.0)
-    section.top_margin = Cm(2.54)
+    section.top_margin = Cm(1.0)
     section.bottom_margin = Cm(2.54)
     section.left_margin = Cm(3.17)
     section.right_margin = Cm(3.17)
