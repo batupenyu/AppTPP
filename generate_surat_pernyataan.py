@@ -214,13 +214,12 @@ def build_surat(data, output_path):
     style.font.name = "Arial"
     style.font.size = Pt(11)
 
-    kop_path = Path(__file__).parent / "kop_surat.png"
+    kop_path = Path(__file__).parent / "kop_surat.jpg"
     if kop_path.exists():
-        p_kop = doc.add_paragraph()
-        p_kop.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p_kop.paragraph_format.space_after = Pt(6)
-        run_kop = p_kop.add_run()
-        run_kop.add_picture(str(kop_path), width=Inches(6.3))
+        doc.add_picture(str(kop_path), width=Inches(5.8))
+        last_paragraph = doc.paragraphs[-1]
+        last_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        last_paragraph.paragraph_format.space_after = Pt(6)
 
     add_paragraph(doc, "SURAT PERNYATAAN TANGGUNG JAWAB MUTLAK",
                   align=WD_ALIGN_PARAGRAPH.CENTER, bold=True,
