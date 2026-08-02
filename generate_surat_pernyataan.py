@@ -167,10 +167,10 @@ def add_numbered_paragraph(doc, text, font_name="Arial", font_size=11,
                            space_after=6, space_before=0):
     """Tambah numbered paragraph (ordered list) untuk item 1, 2, 3, dst.
     Gunakan style 'List Number' agar Word menangani penomoran otomatis.
-    Tanpa padding-left, alignment justify.
+    Tambah paragraph kosong setelah item untuk memastikan spacing antar item.
     """
     p = doc.add_paragraph(style='List Number')
-    p.paragraph_format.space_after = Pt(space_after)
+    p.paragraph_format.space_after = Pt(0)
     p.paragraph_format.space_before = Pt(space_before)
     p.paragraph_format.left_indent = None
     p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
@@ -178,6 +178,11 @@ def add_numbered_paragraph(doc, text, font_name="Arial", font_size=11,
     run = p.add_run(text)
     run.font.name = font_name
     run.font.size = Pt(font_size)
+
+    p_empty = doc.add_paragraph()
+    p_empty.paragraph_format.space_after = Pt(space_after)
+    p_empty.paragraph_format.space_before = Pt(0)
+
     return p
 
 
@@ -251,14 +256,14 @@ def build_surat(data, output_path):
         f"telah dihitung dengan benar berdasarkan dokumen pelaksanaan anggaran "
         f"dan dokumen pendukung lainnya."
     )
-    add_numbered_paragraph(doc, p1, space_after=12)
+    add_numbered_paragraph(doc, p1, space_after=24)
 
     p2 = (
         "Apabila terdapat kesalahan dan kelebihan atas pembayaran, sebagaimana "
         "yang dimaksud pada point 1 (satu), kami bertanggung jawab dan bersedia "
         "untuk menyetorkan kelebihan tersebut ke Kas Daerah."
     )
-    add_numbered_paragraph(doc, p2, space_after=12)
+    add_numbered_paragraph(doc, p2, space_after=24)
 
     p3 = (
         "Dokumen bukti-bukti belanja atas pembayaran tersebut di atas disimpan di "
@@ -266,7 +271,7 @@ def build_surat(data, output_path):
         "sesuai ketentuan yang berlaku untuk kelengkapan administrasi dan keperluan "
         "pemeriksaan BPK dan/atau aparatur pengawas fungsional lainnya."
     )
-    add_numbered_paragraph(doc, p3, space_after=12)
+    add_numbered_paragraph(doc, p3, space_after=24)
 
     lokasi_tanggal = data.get("lokasi") or "Koba,        Agustus 2026"
     if not lokasi_tanggal.startswith("Koba"):
