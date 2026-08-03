@@ -265,7 +265,7 @@ SURAT_HTML_TEMPLATE = """<!DOCTYPE html>
             box-sizing: border-box;
         }
         body {
-            font-family: 'Times New Roman', Times, serif, Arial, sans-serif;
+            font-family: 'arial', sans-serif;
             font-size: 12pt;
             line-height: 1.5;
             color: #000000;
@@ -392,7 +392,7 @@ SURAT_HTML_TEMPLATE = """<!DOCTYPE html>
 def build_surat_html(data, output_path, surat_type="PNS"):
     """Bangun file HTML surat pernyataan berdasarkan struktur html.html."""
     item1, item2, item3 = get_surat_texts(data, surat_type)
-    lokasi_tanggal = data.get("lokasi") or "Koba,&nbsp;&nbsp;&nbsp;Agustus 2026"
+    lokasi_tanggal = data.get("lokasi") or "Koba, Agustus 2026"
 
     kop_path = Path(__file__).parent / "kop_surat.jpg"
     if kop_path.exists():
@@ -410,7 +410,8 @@ def build_surat_html(data, output_path, surat_type="PNS"):
     html = html.replace("@@ITEM1@@", escape(item1))
     html = html.replace("@@ITEM2@@", escape(item2))
     html = html.replace("@@ITEM3@@", escape(item3))
-    html = html.replace("@@LOKASI@@", escape(lokasi_tanggal))
+    lokasi_tanggal = lokasi_tanggal.replace(",", ",<span style='margin-right:30px;'>&nbsp;</span>")
+    html = html.replace("@@LOKASI@@", lokasi_tanggal)
 
     output_path = Path(output_path)
     output_path.write_text(html, encoding="utf-8")
@@ -457,9 +458,9 @@ def build_surat(data, output_path, surat_type="PNS"):
     add_numbered_paragraph(doc, item2, space_after=12)
     add_numbered_paragraph(doc, item3, space_after=12)
 
-    lokasi_tanggal = data.get("lokasi") or "Koba,&nbsp;&nbsp;&nbsp;Agustus 2026"
+    lokasi_tanggal = data.get("lokasi") or "Koba, Agustus 2026"
     if not lokasi_tanggal.startswith("Koba"):
-        lokasi_tanggal = f"Koba,&nbsp;&nbsp;&nbsp;{lokasi_tanggal}"
+        lokasi_tanggal = f"Koba, {lokasi_tanggal}"
 
     add_indented_paragraph(doc, lokasi_tanggal, indent_px=200, space_after=6)
     add_indented_paragraph(doc, "Kepala Sekolah", indent_px=200, space_after=36)
