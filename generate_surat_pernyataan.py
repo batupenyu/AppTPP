@@ -258,7 +258,7 @@ SURAT_HTML_TEMPLATE = """<!DOCTYPE html>
     <style>
         @page {
             size: A4;
-            margin: 20mm 20mm 20mm 20mm;
+            margin: 10mm 20mm 20mm 20mm;
             background-color: #ffffff;
         }
         *, *::before, *::after {
@@ -392,7 +392,7 @@ SURAT_HTML_TEMPLATE = """<!DOCTYPE html>
 def build_surat_html(data, output_path, surat_type="PNS"):
     """Bangun file HTML surat pernyataan berdasarkan struktur html.html."""
     item1, item2, item3 = get_surat_texts(data, surat_type)
-    lokasi_tanggal = data.get("lokasi") or "Koba,        Agustus 2026"
+    lokasi_tanggal = data.get("lokasi") or "Koba,&nbsp;&nbsp;&nbsp;Agustus 2026"
 
     kop_path = Path(__file__).parent / "kop_surat.jpg"
     if kop_path.exists():
@@ -457,9 +457,9 @@ def build_surat(data, output_path, surat_type="PNS"):
     add_numbered_paragraph(doc, item2, space_after=12)
     add_numbered_paragraph(doc, item3, space_after=12)
 
-    lokasi_tanggal = data.get("lokasi") or "Koba,        Agustus 2026"
+    lokasi_tanggal = data.get("lokasi") or "Koba,&nbsp;&nbsp;&nbsp;Agustus 2026"
     if not lokasi_tanggal.startswith("Koba"):
-        lokasi_tanggal = f"Koba,        {lokasi_tanggal}"
+        lokasi_tanggal = f"Koba,&nbsp;&nbsp;&nbsp;{lokasi_tanggal}"
 
     add_indented_paragraph(doc, lokasi_tanggal, indent_px=200, space_after=6)
     add_indented_paragraph(doc, "Kepala Sekolah", indent_px=200, space_after=36)
