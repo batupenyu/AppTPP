@@ -1,22 +1,35 @@
 #!/usr/bin/env python3
 """
 generate_surat_pernyataan.py
-----------------------------
+---------------------------
 Membuat dokumen SURAT PERNYATAAN TANGGUNG JAWAB MUTLAK (SPTJM)
 untuk pembayaran TPP dari data template yang ada di sheet 'sptjm'
-dalam file Excel TPP PNS JULI 2026 SMKN 1 KOBA.xlsm.
+dalam file Excel TPP.
+
+Output dapat berupa Word (.docx) maupun HTML (.html) yang
+mengikuti struktur file html.html.
 
 Cara pakai:
-    python generate_surat_pernyataan.py "TPP PNS JULI 2026 SMKN 1 KOBA.xlsm" \
+    # Word (docx) - default
+    python generate_surat_pernyataan.py "TPP PNS JULI 2026 SMKN 1 KOBA.xlsm" -t PNS \
         -o "SURAT_PERNYATAAN_PNS.docx"
 
+    python generate_surat_pernyataan.py "TPP P3K JULI 2026 SMKN 1 KOBA.xlsm" -t PPPK \
+        -o "SURAT_PERNYATAAN_P3K.docx"
+
+    # HTML
+    python generate_surat_pernyataan.py "TPP PNS JULI 2026 SMKN 1 KOBA.xlsm" -t PNS -f html \
+        -o "SURAT_PERNYATAAN_PNS.html"
+
 Output:
-    File Word (.docx) berisi surat pernyataan dengan format standir
+    File Word (.docx) atau HTML (.html) berisi surat pernyataan dengan format standir
 """
 
 import argparse
+import base64
 import re
 import sys
+from html import escape
 from pathlib import Path
 
 from openpyxl import load_workbook
@@ -79,11 +92,11 @@ def extract_sptjm_data(xlsx_path):
                     if dots:
                         data["spm_tanggal"] = after.split(dots[0])[0].strip()
 
-            if re.search(r"Rp\.\s*[\d\.]+,-", val):
-                m = re.search(r"(Rp\.\s*[\d\.]+,-)", val)
+            if re.search(r"Rp\.?\s*[\d\.]+,-", val):
+                m = re.search(r"(Rp\.?\s*[\d\.]+,-)", val)
                 if m:
                     data["jumlah_rupiah"] = m.group(1).strip()
-                m2 = re.search(r"Rp\.[\d\.]+,\-\s*\(([^)]+)\)", val)
+                m2 = re.search(r"Rp\.?\s*[\d\.]+,\-\s*\(([^)]+)\)", val)
                 if m2:
                     data["jumlah_terbilang"] = m2.group(1).strip()
 
@@ -126,8 +139,8 @@ def add_paragraph(doc, text, align=WD_ALIGN_PARAGRAPH.LEFT,
 
 
 def add_tab_paragraph(doc, label, value, tab_pos_cm=4.5,
-                      font_name="Arial", font_size=11, bold=False,
-                      space_after=3, space_before=0):
+                       font_name="Arial", font_size=11, bold=False,
+                       space_after=3, space_before=0):
     """Tambah paragraph dengan label di-sepakati kanan, colon, lalu value.
     Contoh output:
         Nama       : SYAHRYANTO, S.T.,M.Pd
@@ -201,7 +214,211 @@ def add_indented_paragraph(doc, text, indent_px=200,
     return p
 
 
-def build_surat(data, output_path):
+def get_surat_texts(data, surat_type="PNS"):
+    """Kembalikan 3 string isi bernomor surat ( dipakai builder docx & html)."""
+    nomor_spm = data.get("spm_nomor") or "..........................................."
+    tanggal_spm = data.get("spm_tanggal") or ".........................................."
+    jumlah = data.get("jumlah_rupiah") or ""
+    terbilang = data.get("jumlah_terbilang") or ""
+    bulan = data.get("bulan") or ""
+    tahun = data.get("tahun") or ""
+
+    if not jumlah and not terbilang:
+        jumlah = "Rp. ....................................,-"
+        terbilang = "..........................................."
+
+    pegawai_type = "Negeri Sipil" if surat_type == "PNS" else "PPPK"
+
+    item1 = (
+        f"Perhitungan yang terdapat dalam SPM Langsung (SPM-LS) Nomor : {nomor_spm} "
+        f"tanggal {tanggal_spm} untuk pembayaran Tambahan Penghasilan Pegawai (TPP) "
+        f"{pegawai_type} sebesar {jumlah} ({terbilang}) untuk bulan {bulan} {tahun} "
+        f"telah dihitung dengan benar berdasarkan dokumen pelaksanaan anggaran "
+        f"dan dokumen pendukung lainnya."
+    )
+    item2 = (
+        "Apabila terdapat kesalahan dan kelebihan atas pembayaran, sebagaimana "
+        "yang dimaksud pada point 1 (satu), kami bertanggung jawab dan bersedia "
+        "untuk menyetorkan kelebihan tersebut ke Kas Daerah."
+    )
+    item3 = (
+        "Dokumen bukti-bukti belanja atas pembayaran tersebut di atas disimpan di "
+        "Dinas Pendidikan Provinsi Kepulauan Bangka Belitung (SMK Negeri 1 Koba) "
+        "sesuai ketentuan yang berlaku untuk kelengkapan administrasi dan keperluan "
+        "pemeriksaan BPK dan/atau aparatur pengawas fungsional lainnya."
+    )
+    return item1, item2, item3
+
+
+SURAT_HTML_TEMPLATE = """<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Surat Pernyataan Tanggung Jawab Mutlak (SPTJM) @@TIPE@@</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 20mm 20mm 20mm 20mm;
+            background-color: #ffffff;
+        }
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Times New Roman', Times, serif, Arial, sans-serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: #000000;
+            margin: 0;
+            padding: 0;
+        }
+        .kop-image {
+            max-width: 560px;
+            width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto 10px;
+        }
+        .title-container {
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 25px;
+        }
+        .title-container h4 {
+            margin: 0;
+            font-size: 12pt;
+            font-weight: bold;
+            text-decoration: underline;
+            text-transform: uppercase;
+        }
+        .content-section {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+        .identity-table {
+            width: 100%;
+            margin-bottom: 15px;
+            border-collapse: collapse;
+            margin-left: 30px;
+        }
+        .identity-table td {
+            vertical-align: top;
+            padding: 2px 0;
+        }
+        .identity-table td.label {
+            width: 10%;
+        }
+        .identity-table td.separator {
+            width: 3%;
+            text-align: center;
+        }
+        .identity-table td.value {
+            width: 75%;
+        }
+        .numbered-list {
+            margin: 0;
+            padding-left: 20px;
+            text-align: justify;
+        }
+        .numbered-list li {
+            margin-bottom: 10px;
+            padding-left: 5px;
+        }
+        .signature-section {
+            margin-top: 40px;
+            float: right;
+            width: 280px;
+            text-align: left;
+        }
+        .signature-section p {
+            margin: 0 0 5px 0;
+        }
+        .signature-space {
+            height: 70px;
+        }
+        .signatory-name {
+            font-weight: normal;
+            /* text-decoration: underline; */
+        }
+    </style>
+</head>
+<body>
+@@HEADER@@
+<div class="title-container">
+    <h4>SURAT PERNYATAAN TANGGUNG JAWAB MUTLAK</h4>
+</div>
+<div class="content-section">
+    <p>Yang bertanda tangan dibawah ini :</p>
+    <table class="identity-table">
+        <tr>
+            <td class="label">Nama</td>
+            <td class="separator">:</td>
+            <td class="value"><b>@@NAMA@@</b></td>
+        </tr>
+        <tr>
+            <td class="label">NIP</td>
+            <td class="separator">:</td>
+            <td class="value">@@NIP@@</td>
+        </tr>
+        <tr>
+            <td class="label">Jabatan</td>
+            <td class="separator">:</td>
+            <td class="value">@@JABATAN@@</td>
+        </tr>
+    </table>
+    <p>Menyatakan dengan sesungguhnya bahwa :</p>
+</div>
+<div class="content-section">
+    <ol class="numbered-list">
+        <li>@@ITEM1@@</li>
+        <li>@@ITEM2@@</li>
+        <li>@@ITEM3@@</li>
+    </ol>
+</div>
+<div class="content-section">
+    <p>Demikian surat pernyataan ini dibuat dengan sesungguhnya untuk dipergunakan sebagaimana mestinya.</p>
+</div>
+<div class="signature-section">
+    <p>@@LOKASI@@</p>
+    <p>Kepala Sekolah,</p>
+    <div class="signature-space"></div>
+    <p class="signatory-name">@@NAMA@@<br>NIP. @@NIP@@</p>
+</div>
+</body>
+</html>
+"""
+
+
+def build_surat_html(data, output_path, surat_type="PNS"):
+    """Bangun file HTML surat pernyataan berdasarkan struktur html.html."""
+    item1, item2, item3 = get_surat_texts(data, surat_type)
+    lokasi_tanggal = data.get("lokasi") or "Koba,        Agustus 2026"
+
+    kop_path = Path(__file__).parent / "kop_surat.jpg"
+    if kop_path.exists():
+        b64 = base64.b64encode(kop_path.read_bytes()).decode("ascii")
+        header_html = f'<img src="data:image/jpeg;base64,{b64}" class="kop-image" alt="Kop Surat">'
+    else:
+        header_html = ""
+
+    html = SURAT_HTML_TEMPLATE
+    html = html.replace("@@TIPE@@", escape(surat_type))
+    html = html.replace("@@HEADER@@", header_html)
+    html = html.replace("@@NAMA@@", escape(data.get("nama") or ""))
+    html = html.replace("@@NIP@@", escape(data.get("nip") or ""))
+    html = html.replace("@@JABATAN@@", escape(data.get("jabatan") or ""))
+    html = html.replace("@@ITEM1@@", escape(item1))
+    html = html.replace("@@ITEM2@@", escape(item2))
+    html = html.replace("@@ITEM3@@", escape(item3))
+    html = html.replace("@@LOKASI@@", escape(lokasi_tanggal))
+
+    output_path = Path(output_path)
+    output_path.write_text(html, encoding="utf-8")
+    print(f"Surat pernyataan HTML disimpan ke: {output_path}")
+    return output_path
+
+
+def build_surat(data, output_path, surat_type="PNS"):
     doc = Document()
 
     section = doc.sections[0]
@@ -235,40 +452,10 @@ def build_surat(data, output_path):
 
     add_paragraph(doc, "Menyatakan dengan sesungguhnya bahwa :", space_after=6)
 
-    nomor_spm = data.get("spm_nomor") or "..........................................."
-    tanggal_spm = data.get("spm_tanggal") or ".........................................."
-    jumlah = data.get("jumlah_rupiah") or ""
-    terbilang = data.get("jumlah_terbilang") or ""
-    bulan = data.get("bulan") or ""
-    tahun = data.get("tahun") or ""
-
-    if not jumlah and not terbilang:
-        jumlah = "Rp. ....................................,-"
-        terbilang = "..........................................."
-
-    p1 = (
-        f"Perhitungan yang terdapat dalam SPM Langsung (SPM-LS) Nomor : {nomor_spm} "
-        f"tanggal {tanggal_spm} untuk pembayaran Tambahan Penghasilan Pegawai (TPP) "
-        f"Negeri Sipil sebesar {jumlah} ({terbilang}) untuk bulan {bulan} {tahun} "
-        f"telah dihitung dengan benar berdasarkan dokumen pelaksanaan anggaran "
-        f"dan dokumen pendukung lainnya."
-    )
-    add_numbered_paragraph(doc, p1, space_after=12)
-
-    p2 = (
-        "Apabila terdapat kesalahan dan kelebihan atas pembayaran, sebagaimana "
-        "yang dimaksud pada point 1 (satu), kami bertanggung jawab dan bersedia "
-        "untuk menyetorkan kelebihan tersebut ke Kas Daerah."
-    )
-    add_numbered_paragraph(doc, p2, space_after=12)
-
-    p3 = (
-        "Dokumen bukti-bukti belanja atas pembayaran tersebut di atas disimpan di "
-        "Dinas Pendidikan Provinsi Kepulauan Bangka Belitung (SMK Negeri 1 Koba) "
-        "sesuai ketentuan yang berlaku untuk kelengkapan administrasi dan keperluan "
-        "pemeriksaan BPK dan/atau aparatur pengawas fungsional lainnya."
-    )
-    add_numbered_paragraph(doc, p3, space_after=12)
+    item1, item2, item3 = get_surat_texts(data, surat_type)
+    add_numbered_paragraph(doc, item1, space_after=12)
+    add_numbered_paragraph(doc, item2, space_after=12)
+    add_numbered_paragraph(doc, item3, space_after=12)
 
     lokasi_tanggal = data.get("lokasi") or "Koba,        Agustus 2026"
     if not lokasi_tanggal.startswith("Koba"):
@@ -298,20 +485,34 @@ def build_surat(data, output_path):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate SURAT_PERNYATAAN_PNS.docx dari sheet sptjm Excel TPP")
+        description="Generate SURAT_PERNYATAAN_PNS / SURAT_PERNYATAAN_P3K (.docx atau .html) dari sheet sptjm Excel TPP")
     parser.add_argument("xlsx_path", help="Path ke file Excel TPP (mis. TPP PNS JULI 2026 SMKN 1 KOBA.xlsm)")
+    parser.add_argument("-t", "--type", default="PNS", choices=["PNS", "PPPK"],
+                        help="Tipe surat: PNS atau PPPK (default: PNS)")
+    parser.add_argument("-f", "--format", default="docx", choices=["docx", "html"],
+                        help="Format output: docx atau html (default: docx)")
     parser.add_argument("-o", "--output", default=None,
-                        help="Path output docx (default: SURAT_PERNYATAAN_PNS.docx)")
+                        help="Path output (default: SURAT_PERNYATAAN_PNS.docx/.html atau SURAT_PERNYATAAN_P3K.docx/.html)")
     args = parser.parse_args()
 
     xlsx_path = Path(args.xlsx_path)
     if not xlsx_path.exists():
         sys.exit(f"File tidak ditemukan: {xlsx_path}")
 
-    output_path = args.output or xlsx_path.with_name("SURAT_PERNYATAAN_PNS.docx")
+    ext = "html" if args.format == "html" else "docx"
+    if args.output:
+        output_path = Path(args.output)
+    else:
+        if args.type == "PPPK":
+            output_path = xlsx_path.with_name(f"SURAT_PERNYATAAN_P3K.{ext}")
+        else:
+            output_path = xlsx_path.with_name(f"SURAT_PERNYATAAN_PNS.{ext}")
 
     data = extract_sptjm_data(xlsx_path)
-    build_surat(data, output_path)
+    if args.format == "html":
+        build_surat_html(data, output_path, surat_type=args.type)
+    else:
+        build_surat(data, output_path, surat_type=args.type)
 
     print(f"  Nama   : {data['nama']}")
     print(f"  NIP    : {data['nip']}")
