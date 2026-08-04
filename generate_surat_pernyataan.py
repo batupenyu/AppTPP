@@ -258,7 +258,7 @@ SURAT_HTML_TEMPLATE = """<!DOCTYPE html>
     <style>
         @page {
             size: A4;
-            margin: 10mm 20mm 20mm 20mm;
+            margin: 10mm 0 20mm 0;
             background-color: #ffffff;
         }
         *, *::before, *::after {
@@ -273,11 +273,13 @@ SURAT_HTML_TEMPLATE = """<!DOCTYPE html>
             padding: 0;
         }
         .kop-image {
-            max-width: 560px;
-            width: 100%;
+            width: 100vw;
             height: auto;
             display: block;
-            margin: 0 auto 10px;
+        }
+        .content-wrapper {
+            padding: 0 20mm;
+            box-sizing: border-box;
         }
         .title-container {
             text-align: center;
@@ -344,6 +346,7 @@ SURAT_HTML_TEMPLATE = """<!DOCTYPE html>
 </head>
 <body>
 @@HEADER@@
+<div class="content-wrapper">
 <div class="title-container">
     <h4>SURAT PERNYATAAN TANGGUNG JAWAB MUTLAK</h4>
 </div>
@@ -382,8 +385,9 @@ SURAT_HTML_TEMPLATE = """<!DOCTYPE html>
     <p>@@LOKASI@@</p>
     <p>Kepala Sekolah,</p>
     <div class="signature-space"></div>
-    <p class="signatory-name">@@NAMA@@<br>NIP. @@NIP@@</p>
-</div>
+     <p class="signatory-name">@@NAMA@@<br>NIP. @@NIP@@</p>
+    </div>
+</div> <!-- end content-wrapper -->
 </body>
 </html>
 """
