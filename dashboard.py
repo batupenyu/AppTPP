@@ -181,8 +181,11 @@ def render_surat_format(jenis, info, fmt, label, output_path: Path):
 # ---------------------------------------------------------------------------
 st.title("📊 Dashboard Pipeline TPP (run_all.py)")
 
-tab_upload, tab_pipeline, tab_surat, tab_output = st.tabs(
-    ["📤 Upload PDF", "⚙️ Jalankan Pipeline", "📝 Surat Pernyataan", "📁 File Output"]
+USULAN_DIR = BASE / "_usulan_tpp_smkn1_koba"
+
+tab_upload, tab_pipeline, tab_surat, tab_usulan, tab_output = st.tabs(
+    ["📤 Upload PDF", "⚙️ Jalankan Pipeline", "📝 Surat Pernyataan",
+     "📁 Usulan TPP", "📁 File Output"]
 )
 
 # === TAB 1: UPLOAD / GANTI FILE PDF ========================================
@@ -368,6 +371,70 @@ with tab_surat:
             render_surat_format(jenis, info, "docx", info["label"], info["output"])
             st.markdown("---")
             render_surat_format(jenis, info, "html", info["html_label"], info["html_output"])
+
+# === TAB 5: LINK / MENUJU FOLDER _usulan_tpp_smkn1_koba ====================
+with tab_usulan:
+    st.header("📁 Usulan TPP SMKN 1 Koba")
+
+    folder_uri = str(USULAN_DIR).replace("\\", "/")
+    folder_path = str(USULAN_DIR)
+    st.markdown(
+        f"📂 [<code>{folder_path}</code>](file:///{folder_uri})",
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        "Klik tautan di atas untuk membuka folder di File Explorer, atau gunakan "
+        "tombol di bawah."
+    )
+    st.code(folder_path, language=None)
+
+    if st.button("🖥️ Buka folder di File Explorer", type="primary", use_container_width=True):
+        import os
+        os.startfile(str(USULAN_DIR))
+
+    if not USULAN_DIR.exists():
+        st.warning(f"⚠️ Folder tidak ditemukan: {USULAN_DIR}")
+    else:
+        subdirs = sorted([d for d in USULAN_DIR.iterdir() if d.is_dir()])
+        all_files = sorted([f for f in USULAN_DIR.iterdir() if f.is_file() and not f.name.endswith(BACKUP_SUFFIX)])
+
+        # file luring di akar folder usulan
+        if all_files:
+            st.markdown("#### Berkas di akar folder")
+            for f in all_files:
+                size_kb = f.stat().st_size / 1024
+                mtime = time.strftime("%Y-%m-%d %H:%M", time.localtime(f.stat().st_mtime))
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.caption(f"📄 {f.name} ({size_kb:.1f} KB, diperbarui {mtime})")
+                with col2:
+                    with open(f, "rb") as fh:
+                        st.download_button(
+                            "⬇️ Unduh", data=fh, file_name=f.name,
+                            key=f"usulan_root_{f.name}",
+                            use_container_width=True,
+                        )
+
+        # sub-folder PNS & PPPK
+        for d in subdirs:
+            st.markdown(f"#### {d.name}")
+            files = sorted([f for f in d.iterdir() if f.is_file() and not f.name.endswith(BACKUP_SUFFIX)])
+            if not files:
+                st.caption("Folder kosong.")
+                continue
+            for f in files:
+                size_kb = f.stat().st_size / 1024
+                mtime = time.strftime("%Y-%m-%d %H:%M", time.localtime(f.stat().st_mtime))
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.caption(f"📄 {f.name} ({size_kb:.1f} KB, diperbarui {mtime})")
+                with col2:
+                    with open(f, "rb") as fh:
+                        st.download_button(
+                            "⬇️ Unduh", data=fh, file_name=f.name,
+                            key=f"usulan_{d.name}_{f.name}",
+                            use_container_width=True,
+                        )
 
 # === TAB 4: RINGKASAN FILE OUTPUT ==========================================
 with tab_output:
