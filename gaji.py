@@ -28,15 +28,17 @@ from pathlib import Path
 import pandas as pd
 import pdfplumber
 
+DEBUG = False
+
 # Batas bawah header (data mulai ~150)
 HEADER_TOP_MAX = 155
 TOP_MIN = 150
 
 # Konstanta deteksi band & kolom
-NAME_X_MIN = 38
-NAME_X_MAX = 95
-STATUS_X_MIN = 215
-STATUS_X_MAX = 262
+NAME_X_MIN = 30
+NAME_X_MAX = 130
+STATUS_X_MIN = 185
+STATUS_X_MAX = 215
 NUMERIC_X_MIN = 255
 NUMERIC_X_MAX = 830
 CLUSTER_GAP = 14
@@ -80,6 +82,20 @@ def find_employee_bands(words):
             continue
         lines.setdefault(round(w["top"], 1), []).append(w)
 
+    if DEBUG:
+        all_xs = sorted(set(w["x0"] for w in words if w["top"] >= TOP_MIN))
+        print(f"[DEBUG] Unique x0 positions (top>={TOP_MIN}): {all_xs[:30]}")
+        name_words = [w for w in words if NAME_X_MIN <= w["x0"] <= NAME_X_MAX and any(c.isalpha() for c in w["text"]) and w["top"] >= TOP_MIN]
+        status_words = [w for w in words if STATUS_X_MIN <= w["x0"] <= STATUS_X_MAX and w["text"][:1].isalpha() and w["top"] >= TOP_MIN]
+        print(f"[DEBUG] Words in NAME range ({NAME_X_MIN}-{NAME_X_MAX}): {len(name_words)}")
+        if name_words:
+            for w in name_words[:5]:
+                print(f"  NAME: x0={w['x0']:.1f} text='{w['text']}' top={w['top']:.1f}")
+        print(f"[DEBUG] Words in STATUS range ({STATUS_X_MIN}-{STATUS_X_MAX}): {len(status_words)}")
+        if status_words:
+            for w in status_words[:5]:
+                print(f"  STATUS: x0={w['x0']:.1f} text='{w['text']}' top={w['top']:.1f}")
+
     band_starts = []
     for top in sorted(lines):
         ws = lines[top]
@@ -107,6 +123,10 @@ def build_column_centers(pdf):
     words = page.extract_words()
     bands = find_employee_bands(words)
     if not bands:
+        if DEBUG:
+            print("[DEBUG] No bands found. All words on page 1:")
+            for w in words[:30]:
+                print(f"  x0={w['x0']:.1f} x1={w['x1']:.1f} top={w['top']:.1f} text='{w['text']}'")
         return []
 
     all_xs = []
@@ -195,7 +215,7 @@ def extract_band(band_top, bwords, column_centers):
         npwp.sort(key=lambda w: w["top"])
         rec["NPWP"] = "".join(w["text"].strip() for w in npwp)
 
-    rek = [w for w in bwords if 820 <= w["x0"] <= 895
+    rek = [w for w in bwords if 700 <= w["x0"] <= 800
             and _is_digitish(w["text"])
             and 30 <= (w["top"] - band_top) <= 48]
     if rek:
@@ -301,7 +321,11 @@ def main():
     parser.add_argument("pdf_path")
     parser.add_argument("output_path_positional", nargs="?", default=None)
     parser.add_argument("-o", "--output", default=None)
+    parser.add_argument("--debug", action="store_true", help="Tampilkan info debug untuk diagnosis layout")
     args = parser.parse_args()
+
+    global DEBUG
+    DEBUG = args.debug
 
     pdf_path = Path(args.pdf_path)
     if not pdf_path.exists():
