@@ -109,9 +109,25 @@
             font-weight: normal;
             /* text-decoration: underline; */
         }
+        .print-container {
+            width: 100%;
+            max-width: 210mm;
+            margin: 20px auto;
+            background: #ffffff;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+            box-sizing: border-box;
+        }
+        @media print {
+            .print-container {
+                box-shadow: none;
+                margin: 0;
+                max-width: none;
+            }
+        }
     </style>
 </head>
 <body>
+    <div class="print-container">
 
     <!-- <div class="header-container">
         <h3>Pemerintah Provinsi Kepulauan Bangka Belitung[cite: 1]</h3>
@@ -175,5 +191,6 @@
         </p>
     </div>
 
+    </div> <!-- end print-container -->
 </body>
 </html>

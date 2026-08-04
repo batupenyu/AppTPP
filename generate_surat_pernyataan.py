@@ -278,6 +278,21 @@ SURAT_HTML_TEMPLATE = """<!DOCTYPE html>
             display: block;
             margin: 0 auto 10px;
         }
+        .print-container {
+            width: 100vw;
+            max-width: 210mm;
+            margin: 20px auto;
+            background: #ffffff;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+            box-sizing: border-box;
+        }
+        @media print {
+            .print-container {
+                box-shadow: none;
+                margin: 0;
+                max-width: none;
+            }
+        }
         .content-wrapper {
             padding: 0 20mm;
             box-sizing: border-box;
@@ -346,6 +361,7 @@ SURAT_HTML_TEMPLATE = """<!DOCTYPE html>
     </style>
 </head>
 <body>
+<div class="print-container">
 @@HEADER@@
 <div class="content-wrapper">
 <div class="title-container">
@@ -389,6 +405,7 @@ SURAT_HTML_TEMPLATE = """<!DOCTYPE html>
      <p class="signatory-name">@@NAMA@@<br>NIP. @@NIP@@</p>
     </div>
 </div> <!-- end content-wrapper -->
+</div> <!-- end print-container -->
 </body>
 </html>
 """
