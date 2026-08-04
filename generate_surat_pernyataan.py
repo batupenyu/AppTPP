@@ -273,9 +273,10 @@ SURAT_HTML_TEMPLATE = """<!DOCTYPE html>
             padding: 0;
         }
         .kop-image {
-            width: 100vw;
+            width: 80vw;
             height: auto;
             display: block;
+            margin: 0 auto 10px;
         }
         .content-wrapper {
             padding: 0 20mm;
