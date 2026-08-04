@@ -258,7 +258,7 @@ SURAT_HTML_TEMPLATE = """<!DOCTYPE html>
     <style>
         @page {
             size: A4;
-            margin: 10mm 0 20mm 0;
+            margin: 20mm 0 20mm 0;
             background-color: #ffffff;
         }
         *, *::before, *::after {
@@ -272,14 +272,14 @@ SURAT_HTML_TEMPLATE = """<!DOCTYPE html>
             margin: 0;
             padding: 0;
         }
-.kop-image {
+        .kop-image {
             width: 100%;
             max-width: 100%;
             height: auto;
             display: block;
             margin: 0 auto 10px;
         }
-.print-container {
+        .print-container {
             width: 100%;
             max-width: 210mm;
             margin: 20px auto;
@@ -296,7 +296,7 @@ SURAT_HTML_TEMPLATE = """<!DOCTYPE html>
             }
         }
         .content-wrapper {
-            padding: 0 20mm;
+            padding: 20mm 20mm 0 20mm;  /* Tambah padding atas 10mm */
             box-sizing: border-box;
         }
         .title-container {
