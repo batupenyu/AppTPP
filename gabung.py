@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import tempfile
+import time
 
 perhitungan = pd.read_csv('perhitungan_ringkasan.csv')
 perhitungan['nip'] = perhitungan['NAMA/NIP'].str.extract(r'NIP\.(\d+)')
@@ -81,5 +82,13 @@ if 'NAMA PEGAWAI' in result.columns:
 tmp_fd, tmp_path = tempfile.mkstemp(suffix='.xlsx', dir='.')
 os.close(tmp_fd)
 result.to_excel(tmp_path, index=False)
-os.replace(tmp_path, 'gabung.xlsx')
+for attempt in range(5):
+    try:
+        os.replace(tmp_path, 'gabung.xlsx')
+        break
+    except PermissionError:
+        if attempt == 4:
+            print("Error: unable to replace gabung.xlsx — close the file in Excel and try again.")
+            raise
+        time.sleep(1)
 print(f'gabung.xlsx saved: {result.shape[0]} rows x {result.shape[1]} columns')
