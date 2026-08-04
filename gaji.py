@@ -1,8 +1,9 @@
 """
 gaji.py
 -------
-Ekstrak tabel "DAFTAR PEMBAYARAN GAJI INDUK PPPK" dari file PDF
-(mis. gaji_all.pdf) ke CSV, meniru pola yang dipakai di bayar.py:
+Ekstrak tabel "DAFTAR PEMBAYARAN GAJI INDUK PNSD" atau
+"DAFTAR PEMBAYARAN GAJI INDUK PPPK" dari file PDF
+(mis. gaji.pdf) ke CSV, meniru pola yang dipakai di bayar.py:
 
     Source            -> extract_words() + clustering kolom        (pdfplumber)
     Band pegawai      -> baris diawali NAMA + STATUS
@@ -10,14 +11,13 @@ Ekstrak tabel "DAFTAR PEMBAYARAN GAJI INDUK PPPK" dari file PDF
     Changed Type      -> angka dibersihkan dari titik ribuan
     Filtered Rows     -> satukan pecahan angka, buang baris tanpa NAMA
 
-Perbedaan dengan bayar.py:
-    PDF ini tidak punya garis tabel, jadi kita pakai ekstraksi berbasis
-    kata (extract_words) dengan deteksi band pegawai dan clustering
-    pusat kolom dari digit.
+Mendukung kedua format:
+    - PNSD: kolom STATUS di x0≈225-249, tanggal lahir di x0≈166
+    - PPPK: kolom STATUS di x0≈191, tanggal lahir di x0≈165
 
 Cara pakai:
     pip install pdfplumber pandas --break-system-packages
-    python gaji.py "gaji_all.pdf" -o "gaji.csv"
+    python gaji.py "gaji.pdf" -o "gaji.csv"
 """
 
 import argparse
@@ -32,13 +32,13 @@ DEBUG = False
 
 # Batas bawah header (data mulai ~150)
 HEADER_TOP_MAX = 155
-TOP_MIN = 140
+TOP_MIN = 145
 
 # Konstanta deteksi band & kolom
 NAME_X_MIN = 30
 NAME_X_MAX = 130
 STATUS_X_MIN = 185
-STATUS_X_MAX = 215
+STATUS_X_MAX = 260
 NUMERIC_X_MIN = 255
 NUMERIC_X_MAX = 830
 CLUSTER_GAP = 14
@@ -106,6 +106,12 @@ def find_employee_bands(words):
                   if STATUS_X_MIN <= w["x0"] <= STATUS_X_MAX
                   and w["text"][:1].isalpha()]
         if name and status:
+            name_texts = [w["text"].upper() for w in name]
+            full_name = "".join(name_texts)
+            if any(t in {"SUB", "TOTAL", "PERGOLONGAN", "PER", "SATKER", "KEPALA", "DINAS", "NIP", "PEG:", "JIWA=", "IST:", "ANK:", ".NULL."} for t in name_texts):
+                continue
+            if "PENATA" in full_name or "MUD" in full_name or "JURU" in full_name:
+                continue
             band_starts.append(top)
 
     bands = []
@@ -119,14 +125,12 @@ def find_employee_bands(words):
 
 
 def build_column_centers(pdf):
-    page = pdf.pages[0]
-    words = page.extract_words()
-    bands = find_employee_bands(words)
-    if not bands:
-        if DEBUG:
-            print("[DEBUG] No bands found. All words on page 1:")
-            for w in words[:30]:
-                print(f"  x0={w['x0']:.1f} x1={w['x1']:.1f} top={w['top']:.1f} text='{w['text']}'")
+    for page in pdf.pages:
+        words = page.extract_words()
+        bands = find_employee_bands(words)
+        if bands:
+            break
+    else:
         return []
 
     all_xs = []
@@ -194,7 +198,7 @@ def extract_band(band_top, bwords, column_centers):
     if stat:
         rec["STATUS"] = " ".join(w["text"] for w in stat).strip()
 
-    tgl = [w for w in bwords if NAME_X_MIN <= w["x0"] <= 165
+    tgl = [w for w in bwords if NAME_X_MIN <= w["x0"] <= 170
            and re.fullmatch(r"\d{1,2}-\d{1,2}-\d{4}", w["text"])]
     if tgl:
         rec["TGL_LAHIR"] = tgl[0]["text"].strip()
@@ -215,7 +219,7 @@ def extract_band(band_top, bwords, column_centers):
         npwp.sort(key=lambda w: w["top"])
         rec["NPWP"] = "".join(w["text"].strip() for w in npwp)
 
-    rek = [w for w in bwords if 700 <= w["x0"] <= 800
+    rek = [w for w in bwords if 700 <= w["x0"] <= 850
             and _is_digitish(w["text"])
             and 30 <= (w["top"] - band_top) <= 48]
     if rek:
@@ -264,6 +268,27 @@ def extract_band(band_top, bwords, column_centers):
         if cur_part:
             jb_parts.append(cur_part)
         rec["PEG"] = jb_parts[-1] if jb_parts else ""
+
+    jbersih_toks = [w for w in bwords
+                     if 740 <= (w["x0"] + w["x1"]) / 2 <= 770
+                     and _is_digitish(w["text"])
+                     and 0 <= (w["top"] - band_top) <= 2]
+    if jbersih_toks:
+        jbersih_toks.sort(key=lambda w: w["top"])
+        jb_parts = []
+        cur_part = ""
+        last_top = None
+        for w in jbersih_toks:
+            if last_top is not None and abs(w["top"] - last_top) < 3:
+                cur_part += w["text"].strip().replace(" ", "")
+            else:
+                if cur_part:
+                    jb_parts.append(cur_part)
+                cur_part = w["text"].strip().replace(" ", "")
+            last_top = w["top"]
+        if cur_part:
+            jb_parts.append(cur_part)
+        rec["JUMLAH_BERSIH"] = jb_parts[-1] if jb_parts else ""
 
     jmlh_toks = [w for w in bwords
                   if 230 <= (w["x0"] + w["x1"]) / 2 <= 250
@@ -351,7 +376,22 @@ def main():
     for col in angka_cols:
         df[col] = df[col].apply(_clean_number)
 
-    df["gaji_net"] = df["PEG"].apply(lambda v: int(v) * 100)
+    def _calc_gaji_net(row):
+        peg = row.get("PEG")
+        jb = row.get("JUMLAH_BERSIH")
+        if pd.notna(peg) and str(peg).strip():
+            try:
+                return int(peg) * 100
+            except (ValueError, TypeError):
+                pass
+        if pd.notna(jb) and str(jb).strip():
+            try:
+                return int(jb)
+            except (ValueError, TypeError):
+                pass
+        return 0
+
+    df["gaji_net"] = df.apply(_calc_gaji_net, axis=1)
 
     df["jumlah_anak"] = df.apply(
         lambda r: str(r.get("STATUS", "").split("-")[0]) + "/" + str(int(r.get("JMLH", 0)) if str(r.get("JMLH", "0")).isdigit() else 0),
