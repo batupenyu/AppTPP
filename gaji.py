@@ -32,7 +32,7 @@ DEBUG = False
 
 # Batas bawah header (data mulai ~150)
 HEADER_TOP_MAX = 155
-TOP_MIN = 150
+TOP_MIN = 140
 
 # Konstanta deteksi band & kolom
 NAME_X_MIN = 30
