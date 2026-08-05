@@ -508,43 +508,43 @@ def build_surat(data, output_path, surat_type="PNS"):
     return output_path
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Generate SURAT_PERNYATAAN_PNS / SURAT_PERNYATAAN_P3K (.docx atau .html) dari sheet sptjm Excel TPP")
-    parser.add_argument("xlsx_path", help="Path ke file Excel TPP (mis. TPP PNS JULI 2026 SMKN 1 KOBA.xlsm)")
-    parser.add_argument("-t", "--type", default="PNS", choices=["PNS", "PPPK"],
-                        help="Tipe surat: PNS atau PPPK (default: PNS)")
-    parser.add_argument("-f", "--format", default="docx", choices=["docx", "html"],
-                        help="Format output: docx atau html (default: docx)")
-    parser.add_argument("-o", "--output", default=None,
-                        help="Path output (default: SURAT_PERNYATAAN_PNS.docx/.html atau SURAT_PERNYATAAN_P3K.docx/.html)")
-    args = parser.parse_args()
+# def main():
+#     parser = argparse.ArgumentParser(
+#         description="Generate SURAT_PERNYATAAN_PNS / SURAT_PERNYATAAN_P3K (.docx atau .html) dari sheet sptjm Excel TPP")
+#     parser.add_argument("xlsx_path", help="Path ke file Excel TPP (mis. TPP PNS JULI 2026 SMKN 1 KOBA.xlsm)")
+#     parser.add_argument("-t", "--type", default="PNS", choices=["PNS", "PPPK"],
+#                         help="Tipe surat: PNS atau PPPK (default: PNS)")
+#     parser.add_argument("-f", "--format", default="docx", choices=["docx", "html"],
+#                         help="Format output: docx atau html (default: docx)")
+#     parser.add_argument("-o", "--output", default=None,
+#                         help="Path output (default: SURAT_PERNYATAAN_PNS.docx/.html atau SURAT_PERNYATAAN_P3K.docx/.html)")
+#     args = parser.parse_args()
 
-    xlsx_path = Path(args.xlsx_path)
-    if not xlsx_path.exists():
-        sys.exit(f"File tidak ditemukan: {xlsx_path}")
+#     xlsx_path = Path(args.xlsx_path)
+#     if not xlsx_path.exists():
+#         sys.exit(f"File tidak ditemukan: {xlsx_path}")
 
-    ext = "html" if args.format == "html" else "docx"
-    if args.output:
-        output_path = Path(args.output)
-    else:
-        if args.type == "PPPK":
-            output_path = xlsx_path.with_name(f"SURAT_PERNYATAAN_P3K.{ext}")
-        else:
-            output_path = xlsx_path.with_name(f"SURAT_PERNYATAAN_PNS.{ext}")
+#     ext = "html" if args.format == "html" else "docx"
+#     if args.output:
+#         output_path = Path(args.output)
+#     else:
+#         if args.type == "PPPK":
+#             output_path = xlsx_path.with_name(f"SURAT_PERNYATAAN_P3K.{ext}")
+#         else:
+#             output_path = xlsx_path.with_name(f"SURAT_PERNYATAAN_PNS.{ext}")
 
-    data = extract_sptjm_data(xlsx_path)
-    if args.format == "html":
-        build_surat_html(data, output_path, surat_type=args.type)
-    else:
-        build_surat(data, output_path, surat_type=args.type)
+#     data = extract_sptjm_data(xlsx_path)
+#     if args.format == "html":
+#         build_surat_html(data, output_path, surat_type=args.type)
+#     else:
+#         build_surat(data, output_path, surat_type=args.type)
 
-    print(f"  Nama   : {data['nama']}")
-    print(f"  NIP    : {data['nip']}")
-    print(f"  Jabatan: {data['jabatan']}")
-    print(f"  Bulan  : {data['bulan']} {data['tahun']}")
-    print(f"  Jumlah : {data['jumlah_rupiah']}")
+#     print(f"  Nama   : {data['nama']}")
+#     print(f"  NIP    : {data['nip']}")
+#     print(f"  Jabatan: {data['jabatan']}")
+#     print(f"  Bulan  : {data['bulan']} {data['tahun']}")
+#     print(f"  Jumlah : {data['jumlah_rupiah']}")
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
