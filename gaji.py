@@ -221,7 +221,7 @@ def extract_band(band_top, bwords, column_centers):
 
     rek = [w for w in bwords if 700 <= w["x0"] <= 850
             and _is_digitish(w["text"])
-            and 30 <= (w["top"] - band_top) <= 48]
+            and 30 <= (w["top"] - band_top) <= 40]
     if rek:
         rek.sort(key=lambda w: w["top"])
         rec["NO_REKENING"] = "".join(w["text"].strip() for w in rek)
