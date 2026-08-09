@@ -75,9 +75,17 @@ def refresh_rekap_tpp(tpp_path, df):
                 f"rekap_tpp: {rekap_headers}"
             )
 
+        nip_col = rekap_headers.index("NIP") + 1
+
         for r_idx, row in enumerate(df.itertuples(index=False), start=first_data_row):
             for c_idx, value in enumerate(row, start=1):
-                ws.Cells(r_idx, c_idx).Value = value
+                if c_idx == nip_col:
+                    value = str(value) if value is not None else ""
+                    ws.Cells(r_idx, c_idx).Value = "'" + value
+                else:
+                    ws.Cells(r_idx, c_idx).Value = value
+
+        ws.Columns(nip_col).NumberFormat = "@"
 
         wb.Save()
         print(f"[OK] {tpp_path.name}: {len(df)} baris ditulis ke rekap_tpp")
