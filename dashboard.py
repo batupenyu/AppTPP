@@ -65,17 +65,17 @@ BACKUP_SUFFIX = ".bak_dashboard"
 # (Negeri Sipil / PPPK) otomatis mengikuti isi Excel, bukan ditebak di dashboard.
 SURAT_TARGETS = {
     "PNS": {
-        "label": "SURAT_PERNYATAAN_PNS.docx",
-        "source": BASE / "_usulan_tpp_smkn1_koba" / "PNS" / "TPP PNS JULI 2026 SMKN 1 KOBA.xlsm",
-        "output": BASE / "_usulan_tpp_smkn1_koba" / "PNS" / "SURAT_PERNYATAAN_PNS.docx",
+        "label": "SURAT_PERNYATAAN_PNS.html",
+        "source": BASE / "_usulan_tpp_smkn1_koba" / "PNS" / "TPP PNS.xlsm",
+        "output": BASE / "_usulan_tpp_smkn1_koba" / "PNS" / "SURAT_PERNYATAAN_PNS.html",
         "type": "PNS",
         "html_label": "SURAT_PERNYATAAN_PNS.html",
         "html_output": BASE / "_usulan_tpp_smkn1_koba" / "PNS" / "SURAT_PERNYATAAN_PNS.html",
     },
     "P3K": {
-        "label": "SURAT_PERNYATAAN_P3K.docx",
-        "source": BASE / "_usulan_tpp_smkn1_koba" / "PPPK" / "TPP P3K JULI 2026 SMKN 1 KOBA.xlsm",
-        "output": BASE / "_usulan_tpp_smkn1_koba" / "PPPK" / "SURAT_PERNYATAAN_P3K.docx",
+        "label": "SURAT_PERNYATAAN_P3K.html",
+        "source": BASE / "_usulan_tpp_smkn1_koba" / "PPPK" / "TPP P3K.xlsm",
+        "output": BASE / "_usulan_tpp_smkn1_koba" / "PPPK" / "SURAT_PERNYATAAN_P3K.html",
         "type": "PPPK",
         "html_label": "SURAT_PERNYATAAN_P3K.html",
         "html_output": BASE / "_usulan_tpp_smkn1_koba" / "PPPK" / "SURAT_PERNYATAAN_P3K.html",
