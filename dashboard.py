@@ -51,6 +51,7 @@ STEPS = {
     },
 }
 MERGE_OUTPUT = BASE / "gabung.xlsx"
+GABUNG = MERGE_OUTPUT
 
 FOLDER_CHOICES = {
     "Folder utama (root)": BASE,
