@@ -396,7 +396,7 @@ SURAT_HTML_TEMPLATE = """<!DOCTYPE html>
 </div>
 <div class="signature-section">
     <p>@@LOKASI@@</p>
-    <p>Kepala Sekolah,</p>
+    <p>Kepala SMK Negeri 1 Koba,</p>
     <div class="signature-space"></div>
      <p class="signatory-name">@@NAMA@@<br>NIP. @@NIP@@</p>
     </div>
@@ -481,7 +481,7 @@ def build_surat(data, output_path, surat_type="PNS"):
         lokasi_tanggal = f"Koba, {lokasi_tanggal}"
 
     add_indented_paragraph(doc, lokasi_tanggal, indent_px=200, space_after=6)
-    add_indented_paragraph(doc, "Kepala Sekolah", indent_px=200, space_after=36)
+    add_indented_paragraph(doc, "Kepala SMK Negeri 1 Koba", indent_px=200, space_after=36)
 
     p_sig = doc.add_paragraph()
     p_sig.paragraph_format.space_after = Pt(3)
