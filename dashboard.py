@@ -6,7 +6,7 @@ Dashboard 1 pintu untuk pipeline run_all.py, ditata dalam beberapa tab
 
   📤 Upload PDF         -> tambah/ganti file PDF ke folder tujuan
   ⚙️ Jalankan Pipeline  -> checklist proses + tombol Generate + log
-  📝 Surat Pernyataan   -> generate SURAT_PERNYATAAN_PNS.docx / P3K.docx
+  📝 Surat Pernyataan   -> generate SURAT_PERNYATAAN_PNS.html / P3K.html + refresh rekap_tpp
   📁 File Output        -> ringkasan semua file hasil + download
 
 File lama HANYA dihapus setelah file baru berhasil dibuat (pola
@@ -60,7 +60,7 @@ FOLDER_CHOICES = {
 
 BACKUP_SUFFIX = ".bak_dashboard"
 
-# Sumber Excel & output docx untuk fitur "Generate Surat Pernyataan (SPTJM)".
+# Sumber Excel & output html untuk fitur "Generate Surat Pernyataan (SPTJM)".
 # generate_surat_pernyataan.py membaca sheet 'sptjm' dari xlsm ini; jenis TPP
 # (Negeri Sipil / PPPK) otomatis mengikuti isi Excel, bukan ditebak di dashboard.
 SURAT_TARGETS = {
@@ -80,6 +80,12 @@ SURAT_TARGETS = {
         "html_label": "SURAT_PERNYATAAN_P3K.html",
         "html_output": BASE / "_usulan_tpp_smkn1_koba" / "PPPK" / "SURAT_PERNYATAAN_P3K.html",
     },
+}
+
+
+TPP_FILES = {
+    "PNS": BASE / "_usulan_tpp_smkn1_koba" / "PNS" / "TPP PNS.xlsm",
+    "PPPK": BASE / "_usulan_tpp_smkn1_koba" / "PPPK" / "TPP P3K.xlsm",
 }
 
 
@@ -134,8 +140,8 @@ def run_script(script_path: Path, args):
 
 
 def render_surat_format(jenis, info, fmt, label, output_path: Path):
-    """Render tombol Generate + Download untuk satu format (docx/html) pada satu jenis surat."""
-    icon = "🌐" if fmt == "html" else "📄"
+    """Render tombol Generate + Download untuk satu format (html) pada satu jenis surat."""
+    icon = "🌐"
     if output_path.exists():
         size_kb = output_path.stat().st_size / 1024
         st.caption(f"{icon} {label} sudah ada ({size_kb:.1f} KB)")
@@ -149,7 +155,7 @@ def render_surat_format(jenis, info, fmt, label, output_path: Path):
         backups = backup_files([output_path])
         result = run_script(
             BASE / "generate_surat_pernyataan.py",
-            [str(info["source"]), "-t", info["type"], "-f", fmt, "-o", str(output_path)],
+            [str(info["source"]), "-t", info["type"], "-o", str(output_path)],
         )
         if result.returncode == 0 and output_path.exists():
             commit_backups(backups)
@@ -368,9 +374,47 @@ with tab_surat:
             source_ok = info["source"].exists()
             st.caption(f"{'✅' if source_ok else '⚪'} Sumber: {info['source'].name}")
 
-            render_surat_format(jenis, info, "docx", info["label"], info["output"])
-            st.markdown("---")
             render_surat_format(jenis, info, "html", info["html_label"], info["html_output"])
+
+    st.markdown("---")
+    st.subheader("🔄 Refresh Sheet Rekap TPP")
+    st.caption(
+        "Perbarui sheet 'rekap_tpp' pada file TPP PNS dan TPP P3K "
+        "dengan data terbaru dari gabung.xlsx. "
+        "Kolom GOLONGAN diabaikan agar cocok dengan header rekap_tpp."
+    )
+
+    refresh_cols = st.columns(2)
+    for col, (jenis, path) in zip(refresh_cols, TPP_FILES.items()):
+        with col:
+            file_ok = path.exists()
+            st.caption(f"{'✅' if file_ok else '⚪'} File: {path.name}")
+            if st.button(
+                f"🔄 Refresh Rekap TPP {jenis}",
+                key=f"refresh_rekap_{jenis}",
+                disabled=not file_ok or not GABUNG.exists(),
+                use_container_width=True,
+            ):
+                backups = backup_files([path])
+                result = run_script(
+                    BASE / "refresh_rekap_tpp.py",
+                    [jenis],
+                )
+                if result.returncode == 0 and path.exists():
+                    commit_backups(backups)
+                    st.success(f"✅ Rekap TPP {jenis} berhasil di-refresh.")
+                    if result.stdout:
+                        st.code(result.stdout, language=None)
+                else:
+                    restore_backups(backups)
+                    st.error(f"❌ Gagal refresh rekap_tpp {jenis} (file lama dipertahankan).")
+                    if result.stdout:
+                        st.code(result.stdout, language=None)
+                    if result.stderr:
+                        st.code(result.stderr, language=None)
+
+    if not GABUNG.exists():
+        st.warning(f"⚠️ gabung.xlsx belum ada. Jalankan pipeline terlebih dahulu.")
 
 # === TAB 5: LINK / MENUJU FOLDER _usulan_tpp_smkn1_koba ====================
 with tab_usulan:
@@ -470,7 +514,6 @@ with tab_output:
     for col, (jenis, info) in zip(surat_cols2, SURAT_TARGETS.items()):
         with col:
             for fmt, label_key, out_key in [
-                ("docx", "label", "output"),
                 ("html", "html_label", "html_output"),
             ]:
                 path = info[out_key]
