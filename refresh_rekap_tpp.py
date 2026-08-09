@@ -5,21 +5,18 @@ refresh_rekap_tpp.py
 Refresh sheet 'rekap_tpp' pada TPP PNS.xlsm dan TPP P3K.xlsm
 dengan data terbaru dari gabung.xlsx.
 
-Penggunaan:
-    python refresh_rekap_tpp.py                      # refresh kedua file
-    python refresh_rekap_tpp.py PNS                   # refresh hanya TPP PNS.xlsm
-    python refresh_rekap_tpp.py PPPK                  # refresh hanya TPP P3K.xlsm
-
-Kolom GOLONGAN di gabung.xlsx di-drop agar cocok dengan header rekap_tpp.
+Menggunakan Excel COM (win32com) agar VBA, external data connections,
+dan drawings tetap terjaga.
 """
 
 import os
 import shutil
 import sys
+import time
 from pathlib import Path
 
 import pandas as pd
-from openpyxl import load_workbook
+import win32com.client
 
 BASE = Path(__file__).resolve().parent
 GABUNG = BASE / "gabung.xlsx"
@@ -44,20 +41,30 @@ def refresh_rekap_tpp(tpp_path, df):
         raise FileNotFoundError(f"File TPP tidak ditemukan: {tpp_path}")
 
     backup_path = tpp_path.with_suffix(".xlsm.bak")
-    backup_created = False
+    shutil.copy2(tpp_path, backup_path)
 
+    xl = None
+    wb = None
     try:
-        shutil.copy2(tpp_path, backup_path)
-        backup_created = True
+        xl = win32com.client.Dispatch("Excel.Application")
+        xl.Visible = False
+        xl.DisplayAlerts = False
 
-        wb = load_workbook(tpp_path, keep_vba=True)
-        ws = wb["rekap_tpp"]
+        wb = xl.Workbooks.Open(str(tpp_path))
+        ws = wb.Worksheets("rekap_tpp")
 
-        max_row = ws.max_row
-        if max_row >= 3:
-            ws.delete_rows(3, max_row - 2)
+        ws.Activate()
+        xl.ActiveWindow.ScrollRow = 1
 
-        headers = [cell.value for cell in ws[2]]
+        used = ws.UsedRange
+        last_row = used.Row + used.Rows.Count - 1
+        header_row = 2
+        first_data_row = 3
+
+        if last_row >= first_data_row:
+            ws.Range(ws.Rows(first_data_row), ws.Rows(last_row)).Delete()
+
+        headers = [ws.Cells(header_row, c).Value for c in range(1, ws.UsedRange.Columns.Count + 1)]
         df_cols = list(df.columns)
 
         rekap_headers = [h for h in headers if h is not None]
@@ -68,17 +75,31 @@ def refresh_rekap_tpp(tpp_path, df):
                 f"rekap_tpp: {rekap_headers}"
             )
 
-        for r_idx, row in enumerate(df.itertuples(index=False), start=3):
+        for r_idx, row in enumerate(df.itertuples(index=False), start=first_data_row):
             for c_idx, value in enumerate(row, start=1):
-                ws.cell(row=r_idx, column=c_idx, value=value)
+                ws.Cells(r_idx, c_idx).Value = value
 
-        wb.save(tpp_path)
+        wb.Save()
         print(f"[OK] {tpp_path.name}: {len(df)} baris ditulis ke rekap_tpp")
     except Exception:
-        if backup_created and backup_path.exists():
+        if wb is not None:
+            wb.Close(SaveChanges=False)
+        if xl is not None:
+            xl.Quit()
+        if backup_path.exists():
             shutil.copy2(backup_path, tpp_path)
         raise
     finally:
+        if wb is not None:
+            try:
+                wb.Close(SaveChanges=False)
+            except Exception:
+                pass
+        if xl is not None:
+            try:
+                xl.Quit()
+            except Exception:
+                pass
         if backup_path.exists():
             os.remove(backup_path)
 
