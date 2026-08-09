@@ -57,6 +57,9 @@ FOLDER_CHOICES = {
 
 BACKUP_SUFFIX = ".bak_dashboard"
 
+RAR_EXE = Path("C:/Program Files/WinRAR/Rar.exe")
+USULAN_RAR_NAME = "usulan_tpp_smkn1_koba.rar"
+
 SURAT_TARGETS = {
     "PNS": {
         "label": "SURAT_PERNYATAAN_PNS.html",
@@ -126,6 +129,20 @@ def run_script(script_path, args):
     cmd = [sys.executable, str(script_path)] + [str(a) for a in args]
     result = subprocess.run(cmd, cwd=str(BASE), capture_output=True, text=True)
     return result
+
+
+def create_usulan_rar(target_rar_path: Path):
+    """Create a RAR archive of the _usulan_tpp_smkn1_koba folder using WinRAR CLI."""
+    if not RAR_EXE.exists():
+        return False, "WinRAR (Rar.exe) tidak ditemukan di C:\\Program Files\\WinRAR\\"
+    if not USULAN_DIR.exists():
+        return False, f"Folder tidak ditemukan: {USULAN_DIR}"
+    target_rar_path.parent.mkdir(parents=True, exist_ok=True)
+    cmd = [str(RAR_EXE), "a", "-r", str(target_rar_path), f"{USULAN_DIR.name}\\*"]
+    result = subprocess.run(cmd, cwd=str(USULAN_DIR.parent), capture_output=True, text=True)
+    if result.returncode == 0 and target_rar_path.exists():
+        return True, None
+    return False, result.stderr or result.stdout
 
 
 # ---------------------------------------------------------------------------
@@ -487,8 +504,27 @@ class App(ctk.CTk):
             else:
                 messagebox.showerror("Error", f"Folder tidak ditemukan: {USULAN_DIR}")
 
+        def download_rar():
+            temp_rar = Path(tempfile.gettempdir()) / USULAN_RAR_NAME
+            self._append_log(f"⏳ Membuat arsip RAR: {temp_rar.name} ...")
+            ok, err = create_usulan_rar(temp_rar)
+            if not ok:
+                messagebox.showerror("Gagal", f"Gagal membuat RAR: {err}")
+                return
+            save_to = filedialog.asksaveasfilename(
+                initialfile=USULAN_RAR_NAME,
+                defaultextension=".rar",
+                filetypes=[("RAR files", "*.rar"), ("All files", "*.*")]
+            )
+            if save_to:
+                shutil.copy(temp_rar, save_to)
+                messagebox.showinfo("Sukses", f"Arsip RAR disimpan ke:\n{save_to}")
+            temp_rar.unlink(missing_ok=True)
+            self._refresh_output()
+
         ctk.CTkButton(btn_frame, text="🖥️ Buka Folder Usulan TPP", command=open_folder).pack(side="left", padx=(0, 10))
         ctk.CTkButton(btn_frame, text="🔄 Refresh", command=self._refresh_output).pack(side="left")
+        ctk.CTkButton(btn_frame, text="📦 Download Usulan TPP (RAR)", command=download_rar).pack(side="left", padx=(10, 0))
 
     def _refresh_output(self):
         for widget in self.output_frame.winfo_children():

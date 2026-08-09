@@ -29,6 +29,8 @@ st.set_page_config(
 )
 
 BASE = Path(__file__).parent
+RAR_EXE = Path("C:/Program Files/WinRAR/Rar.exe")
+USULAN_RAR_NAME = "usulan_tpp_smkn1_koba.rar"
 
 # ---------------------------------------------------------------------------
 # Peta step -> script -> (pdf input, output file yang dihasilkan)
@@ -138,6 +140,19 @@ def save_upload_to(target_path: Path, uploaded_file):
 def run_script(script_path: Path, args):
     cmd = [sys.executable, str(script_path)] + [str(a) for a in args]
     return subprocess.run(cmd, cwd=str(BASE), capture_output=True, text=True)
+
+
+def create_usulan_rar(target_rar_path: Path):
+    if not RAR_EXE.exists():
+        return False, "WinRAR (Rar.exe) tidak ditemukan di C:\\Program Files\\WinRAR\\"
+    if not USULAN_DIR.exists():
+        return False, f"Folder tidak ditemukan: {USULAN_DIR}"
+    target_rar_path.parent.mkdir(parents=True, exist_ok=True)
+    cmd = [str(RAR_EXE), "a", "-r", str(target_rar_path), f"{USULAN_DIR.name}\\*"]
+    result = subprocess.run(cmd, cwd=str(USULAN_DIR.parent), capture_output=True, text=True)
+    if result.returncode == 0 and target_rar_path.exists():
+        return True, None
+    return False, result.stderr or result.stdout
 
 
 def render_surat_format(jenis, info, fmt, label, output_path: Path):
@@ -436,6 +451,28 @@ with tab_usulan:
     if st.button("🖥️ Buka folder di File Explorer", type="primary", use_container_width=True):
         import os
         os.startfile(str(USULAN_DIR))
+
+    if st.button("📦 Download Usulan TPP sebagai RAR", type="secondary", use_container_width=True):
+        temp_rar = BASE / f"temp_{USULAN_RAR_NAME}"
+        with st.spinner(f"Membuat arsip RAR: {temp_rar.name} ..."):
+            ok, err = create_usulan_rar(temp_rar)
+        if not ok:
+            st.error(f"❌ Gagal membuat RAR: {err}")
+        else:
+            st.session_state["usulan_rar_path"] = str(temp_rar)
+            st.success(f"✅ Arsip RAR siap: {temp_rar.name}")
+            st.rerun()
+
+    if st.session_state.get("usulan_rar_path") and Path(st.session_state["usulan_rar_path"]).exists():
+        rar_path = Path(st.session_state["usulan_rar_path"])
+        with open(rar_path, "rb") as f:
+            st.download_button(
+                "⬇️ Unduh RAR",
+                data=f,
+                file_name=USULAN_RAR_NAME,
+                mime="application/octet-stream",
+                use_container_width=True,
+            )
 
     if not USULAN_DIR.exists():
         st.warning(f"⚠️ Folder tidak ditemukan: {USULAN_DIR}")
