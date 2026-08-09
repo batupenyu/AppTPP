@@ -13,6 +13,7 @@ import os
 import shutil
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -76,16 +77,30 @@ def refresh_rekap_tpp(tpp_path, df):
             )
 
         nip_col = rekap_headers.index("NIP") + 1
+        tgl_lahir_col = rekap_headers.index("TGL_LAHIR") + 1
+        nik_col = rekap_headers.index("NIK PEGAWAI") + 1
 
         for r_idx, row in enumerate(df.itertuples(index=False), start=first_data_row):
             for c_idx, value in enumerate(row, start=1):
                 if c_idx == nip_col:
                     value = str(value) if value is not None else ""
                     ws.Cells(r_idx, c_idx).Value = "'" + value
+                elif c_idx == tgl_lahir_col:
+                    if isinstance(value, str) and value:
+                        try:
+                            value = datetime.strptime(value, "%d-%m-%Y").strftime("%Y-%m-%d")
+                        except ValueError:
+                            pass
+                    ws.Cells(r_idx, c_idx).Value = value
+                elif c_idx == nik_col:
+                    value = str(int(value)) if value is not None else ""
+                    ws.Cells(r_idx, c_idx).Value = "'" + value
                 else:
                     ws.Cells(r_idx, c_idx).Value = value
 
         ws.Columns(nip_col).NumberFormat = "@"
+        ws.Columns(tgl_lahir_col).NumberFormat = "dd-mm-yyyy"
+        ws.Columns(nik_col).NumberFormat = "@"
 
         wb.Save()
         print(f"[OK] {tpp_path.name}: {len(df)} baris ditulis ke rekap_tpp")
